@@ -1,0 +1,74 @@
+version: "3.8"
+
+services:
+  cassandra-node1:
+    image: cassandra:4.1
+    container_name: cassandra-node1
+    hostname: cassandra-node1
+    ports:
+      - "9042:9042"
+    environment:
+      - CASSANDRA_CLUSTER_NAME=IoTCluster
+      - CASSANDRA_DC=datacenter1
+      - CASSANDRA_RACK=rack1
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - MAX_HEAP_SIZE=512M
+      - HEAP_NEWSIZE=100M
+    volumes:
+      - cassandra-node1-data:/var/lib/cassandra
+    networks:
+      - cassandra-net
+    healthcheck:
+      test: ["CMD", "cqlsh", "-e", "describe keyspaces"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+
+  cassandra-node2:
+    image: cassandra:4.1
+    container_name: cassandra-node2
+    hostname: cassandra-node2
+    environment:
+      - CASSANDRA_CLUSTER_NAME=IoTCluster
+      - CASSANDRA_DC=datacenter1
+      - CASSANDRA_RACK=rack2
+      - CASSANDRA_SEEDS=cassandra-node1
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - MAX_HEAP_SIZE=512M
+      - HEAP_NEWSIZE=100M
+    volumes:
+      - cassandra-node2-data:/var/lib/cassandra
+    depends_on:
+      cassandra-node1:
+        condition: service_healthy
+    networks:
+      - cassandra-net
+
+  cassandra-node3:
+    image: cassandra:4.1
+    container_name: cassandra-node3
+    hostname: cassandra-node3
+    environment:
+      - CASSANDRA_CLUSTER_NAME=IoTCluster
+      - CASSANDRA_DC=datacenter1
+      - CASSANDRA_RACK=rack3
+      - CASSANDRA_SEEDS=cassandra-node1
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - MAX_HEAP_SIZE=512M
+      - HEAP_NEWSIZE=100M
+    volumes:
+      - cassandra-node3-data:/var/lib/cassandra
+    depends_on:
+      cassandra-node1:
+        condition: service_healthy
+    networks:
+      - cassandra-net
+
+volumes:
+  cassandra-node1-data:
+  cassandra-node2-data:
+  cassandra-node3-data:
+
+networks:
+  cassandra-net:
+    driver: bridge
